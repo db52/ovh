@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/components/common/BrandLogo";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { PanelLeftClose, PanelLeftOpen, Menu, Github } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Menu, Github, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { MobileTabBar } from "./MobileTabBar";
@@ -178,33 +178,30 @@ export function AppShell() {
               )}
               <span className="nav-label">{collapsed && !mobile ? "" : t("shell.collapseRail")}</span>
             </button>
-            {/* 冠名:GitHub 仓库 + 作者(可乐/cola)。收起态 GitHub 图标仍在,title 提示仓库地址 */}
+            {/* The maintained source and the original author's project are separate links. */}
+            <a
+              href="https://github.com/db52/ovh"
+              target="_blank"
+              rel="noreferrer"
+              className="nav-item source-link"
+              aria-label={version ? `${t("shell.projectSource")} · v${version}` : t("shell.projectSource")}
+              title="github.com/db52/ovh"
+            >
+              <Github className="nav-ico" size={16} strokeWidth={1.9} aria-hidden="true" />
+              <span className="nav-label">{t("shell.projectSource")}</span>
+              {version && <span className="tnum source-version">v{version}</span>}
+            </a>
             <a
               href="https://github.com/gokele/ovh"
               target="_blank"
               rel="noreferrer"
               className="nav-item"
-              title="github.com/gokele/ovh"
+              aria-label={t("shell.originalAuthor", { name: t("shell.cola") })}
+              title={t("shell.originalAuthor", { name: t("shell.cola") })}
             >
-              <Github className="nav-ico" size={16} strokeWidth={1.9} />
-              <span className="nav-label">{t("shell.cola")}</span>
-              {!collapsed && version && (
-                <span
-                  className="tnum"
-                  style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-faint)", fontWeight: 500 }}
-                >
-                  v{version}
-                </span>
-              )}
+              <UserRound className="nav-ico" size={16} strokeWidth={1.9} aria-hidden="true" />
+              <span className="nav-label">{t("shell.originalAuthor", { name: t("shell.cola") })}</span>
             </a>
-            {collapsed && !mobile && version && (
-              <div
-                className="tnum"
-                style={{ textAlign: "center", fontSize: 10.5, color: "var(--ink-faint)", padding: "2px 0 4px" }}
-              >
-                v{version}
-              </div>
-            )}
           </div>
         </aside>
 

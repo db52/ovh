@@ -437,6 +437,8 @@ const pack: CommonLayerPack = {
     expandRail: "Expand navigation",
     collapseRail: "Collapse navigation",
     cola: "cola",
+    projectSource: "Project source",
+    originalAuthor: "Original author: {{name}}",
     account: {
       loadFailed: "Failed to load the account list",
       add: "Add an OVH account",

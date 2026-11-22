@@ -420,6 +420,8 @@ export const commonLayerZh = {
     expandRail: "展开导航",
     collapseRail: "收起导航",
     cola: "可乐",
+    projectSource: "项目源码",
+    originalAuthor: "原作者：{{name}}",
     account: {
       loadFailed: "账户列表读取失败",
       add: "添加 OVH 账户",
