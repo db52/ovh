@@ -19,10 +19,18 @@ import (
 //
 // 容器的更新方式只有一个：拉新镜像、重建容器。数据在卷上，不受影响。
 func InContainer() bool {
+	return inContainer(os.Getenv("OVH_IN_CONTAINER"), detectContainerRuntime)
+}
+
+func inContainer(flag string, detect func() bool) bool {
 	// 我们自己的镜像里显式设了这个 —— 最可靠
-	if v := strings.TrimSpace(os.Getenv("OVH_IN_CONTAINER")); v != "" && v != "0" && !strings.EqualFold(v, "false") {
+	if v := strings.TrimSpace(flag); v != "" && v != "0" && !strings.EqualFold(v, "false") {
 		return true
 	}
+	return detect()
+}
+
+func detectContainerRuntime() bool {
 	// Docker 会在容器根目录放这个文件
 	if _, err := os.Stat("/.dockerenv"); err == nil {
 		return true
@@ -46,11 +54,8 @@ func InContainer() bool {
 
 // ContainerUpdateHint 容器里该怎么更新。给接口和界面用同一份说法。
 const ContainerUpdateHint = "检测到运行在容器里，自更新已停用。\n\n" +
-	"容器的更新方式是拉新镜像再重建容器：\n" +
-	"  docker compose pull && docker compose up -d\n" +
-	"或者：\n" +
-	"  docker pull ghcr.io/gokele/ovh:latest\n" +
-	"  docker rm -f ovh-console && docker run -d ... ghcr.io/gokele/ovh:latest\n\n" +
-	"数据在挂载的卷上，重建容器不会丢。\n\n" +
+	"使用本仓库的 Compose 时，先备份数据卷（含数据库和配套密钥），检出已审阅的目标版本，再从源码重建：\n" +
+	"  docker compose up -d --build\n\n" +
+	"沿用原数据卷；不要删除数据目录或使用 down -v。\n\n" +
 	"为什么不能在容器里自更新：新二进制只会写进容器的可写层，" +
 	"容器一重建就回到镜像里的旧版本 —— 你会看到「更新成功」之后版本号又变回去。"

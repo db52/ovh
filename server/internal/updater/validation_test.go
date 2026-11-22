@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func TestForkReleaseSource(t *testing.T) {
+	t.Setenv("OVH_UPDATE_API", "")
+	if got := LatestReleaseURL(); got != "https://api.github.com/repos/db52/ovh/releases/latest" {
+		t.Fatalf("unexpected default release channel: %s", got)
+	}
+	const mirror = "https://mirror.example.invalid/releases/latest"
+	t.Setenv("OVH_UPDATE_API", mirror)
+	if got := LatestReleaseURL(); got != mirror {
+		t.Fatalf("custom release channel ignored: %s", got)
+	}
+}
+
 func TestFetchLatestRejectsMalformedURL(t *testing.T) {
 	t.Setenv("OVH_UPDATE_API", "http://[invalid")
 	if _, err := FetchLatest(); err == nil {

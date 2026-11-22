@@ -2,6 +2,8 @@
 
 > 🌐 English | [中文](README.md)
 
+`db52/ovh` is a maintenance fork of the history preserved by [luodaoyi/ovh](https://github.com/luodaoyi/ovh). The original project is by [gokele](https://github.com/gokele/ovh); the [AGPL-3.0 license](LICENSE) is unchanged.
+
 A **sniping + monitoring + management** console for OVH bare-metal servers / VPS / Eco lines.
 
 Watches stock across OVH datacenters in real time and auto-orders purchasable servers per your configuration (datacenter, RAM, storage, bandwidth, vRack). It also manages the full lifecycle of purchased servers (reboot / reinstall / IPMI / BIOS / netboot mode / maintenance tickets / contact changes / bandwidth / firewall / FTP backup / vRack / secondary DNS, and more). Multiple OVH accounts are supported at once, with sniping and monitoring isolated per account.
@@ -12,7 +14,7 @@ Performance: [prebuilt carts, connection warming and dispatch measurements](docs
 
 ## Download
 
-Grab the binary for your platform from [Releases](https://github.com/gokele/ovh/releases), extract and run — **no Go, Node, or SQLite required**:
+Inherited tags identify source revisions; they do not include the original release assets. Check the actual attachments on [this fork’s Releases page](https://github.com/db52/ovh/releases). If there are none, [build from source](#deployment). Binary names by platform:
 
 | Platform | File |
 |---|---|
@@ -22,11 +24,7 @@ Grab the binary for your platform from [Releases](https://github.com/gokele/ovh/
 
 The frontend is embedded into the binary via `//go:embed`; once running, open `http://localhost:19998` for the full UI. Remember `chmod +x` on Linux. To build it yourself see [Deployment](#deployment).
 
-A Docker image is also provided (`linux/amd64` + `linux/arm64`):
-
-```bash
-docker pull ghcr.io/gokele/ovh:latest
-```
+The included Compose file builds from this checkout. It does not depend on the old upstream `latest` image.
 
 ## Order payment and stopping purchases
 
@@ -105,25 +103,28 @@ See [server/README.md](server/README.md) for detailed backend documentation.
 ### Option A: Docker (recommended)
 
 ```bash
-# Grab a docker-compose.yml, change the API_SECRET_KEY inside, then:
-docker compose up -d
-
-# Updating
-docker compose pull && docker compose up -d
+git clone https://github.com/db52/ovh.git
+cd ovh
+cp .env.example .env
+# Edit .env and set API_SECRET_KEY to a long random secret, then run:
+docker compose up -d --build
 ```
 
-Or run directly:
+Before updating, take a consistent backup of `./data` (including the database and its matching key) and keep the deployment `.env` separately. Check out the reviewed revision, then run `docker compose up -d --build`.
+
+Without Compose, build a local image from the repository root first:
 
 ```bash
+docker build -t ovh-console-fork:local .
 docker run -d --name ovh-console \
   -p 127.0.0.1:20000:20000 \
   -v "$PWD/data:/data" \
-  -e API_SECRET_KEY=your-own-random-string \
+  --env-file .env \
   --restart unless-stopped \
-  ghcr.io/gokele/ovh:latest
+  ovh-console-fork:local
 ```
 
-The image is built by a GitHub Action on tag push and published to `ghcr.io/gokele/ovh`, for `linux/amd64` and `linux/arm64`.
+This builds for the local host and does not publish an image to a registry.
 
 **All data lives under the single `/data` directory**: the SQLite database, the **database encryption key** (`.env`), caches, and logs. Back up that directory and you have everything.
 
@@ -132,7 +133,7 @@ The image is built by a GitHub Action on tag push and published to `ghcr.io/goke
 
 On first start the container chowns `/data` to `PUID:PGID` (default 10001). Bind-mounted host directories are owned by host UIDs; without this step the non-root user inside the container cannot write and the program won't start at all. Pass `PUID`/`PGID` to align with your current host user, or run `docker run --user $(id -u):$(id -g)` (the container then skips ownership handling; you guarantee write access yourself).
 
-**Self-update inside the container is disabled.** A new binary only lands in the container's writable layer; once the container is recreated (`compose up -d`, restart policy, host reboot) you're back to the image's old version — you'd see "update successful" and then the version number revert. The UI shows "new version available + please docker pull" instead of an update button in that case.
+**Self-update inside the container is disabled.** Replacing the binary in the writable layer cannot update the image: recreating the container would revert the version. The UI prompts you to rebuild rather than offering to replace the binary.
 
 ### Option B: Single binary
 
@@ -155,7 +156,7 @@ CGO_ENABLED=0 go build -tags ui -trimpath \
 On Windows, name the output `ovh-server.exe`; for cross-compilation prefix with `GOOS=linux GOARCH=arm64` etc.
 **No external SQLite library needed — the binary is self-contained.** It listens on `:19998` by default; open `http://localhost:19998`, and the database is created automatically at `./data/sniper.db`.
 
-> The Release page provides prebuilt binaries for Windows amd64 / Linux amd64 / Linux arm64 if you'd rather not compile.
+> Use a prebuilt download only when this fork's Release includes your platform binary and its checksum.
 
 ### Option C: Development (frontend and backend separately)
 

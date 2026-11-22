@@ -2,6 +2,8 @@
 
 > 🌐 [English](README.en.md) | 中文
 
+本仓库是 `db52/ovh` 维护分支，接续 [luodaoyi/ovh](https://github.com/luodaoyi/ovh) 保存的历史。原作者为 [gokele](https://github.com/gokele/ovh)，项目沿用 [AGPL-3.0](LICENSE)。
+
 OVH 独立服务器 / VPS / Eco 系列**抢购 + 监控 + 管理**控制台。
 
 实时检测 OVH 各数据中心库存,发现可购买的服务器时按用户配置(机房、内存、存储、带宽、vRack)自动下单。后台同时管理已购买服务器的全生命周期(重启 / 重装 / IPMI / BIOS / 启动模式 / 维护工单 / 联系人变更 / 带宽 / 防火墙 / FTP 备份 / vRack / Secondary DNS 等)。支持**多 OVH 账户**同时管理,抢购 / 监控按账户隔离。
@@ -14,7 +16,7 @@ OVH 独立服务器 / VPS / Eco 系列**抢购 + 监控 + 管理**控制台。
 
 ## 下载
 
-去 [Releases](https://github.com/gokele/ovh/releases) 拿对应平台的二进制,解压即用,**不需要装 Go、Node 或 SQLite**:
+历史标签只标记源码，并不附带原仓的发布附件。请以[本仓 Releases](https://github.com/db52/ovh/releases) 实际列出的附件为准。若没有附件，可按[部署方式](#部署方式)从源码构建。各平台的二进制文件名：
 
 | 平台 | 文件 |
 |---|---|
@@ -25,11 +27,7 @@ OVH 独立服务器 / VPS / Eco 系列**抢购 + 监控 + 管理**控制台。
 前端已经用 `//go:embed` 嵌进二进制,跑起来直接开 `http://localhost:19998` 就是完整界面。
 Linux 上记得 `chmod +x`。想自己编译见[部署方式](#部署方式)。
 
-也提供 Docker 镜像(`linux/amd64` + `linux/arm64`):
-
-```bash
-docker pull ghcr.io/gokele/ovh:latest
-```
+Docker 用户请使用仓库内的 Compose 从源码构建，不依赖旧上游的 `latest` 镜像。
 
 ## 订单付款与停止抢购
 
@@ -108,25 +106,28 @@ docker pull ghcr.io/gokele/ovh:latest
 ### 方式 A:Docker(推荐)
 
 ```bash
-# 拿一份 docker-compose.yml,改掉里面的 API_SECRET_KEY,然后:
-docker compose up -d
-
-# 更新
-docker compose pull && docker compose up -d
+git clone https://github.com/db52/ovh.git
+cd ovh
+cp .env.example .env
+# 打开 .env，将 API_SECRET_KEY 改为自己的随机长密钥，再运行：
+docker compose up -d --build
 ```
 
-或者直接 run:
+更新前，先一致性备份 `./data`（含数据库及其配套密钥）并另存部署用的 `.env`。检出已审阅的目标提交，再运行 `docker compose up -d --build`。不要只更新源码却继续运行旧镜像。
+
+不使用 Compose 时，可在仓库根目录构建本地镜像后启动：
 
 ```bash
+docker build -t ovh-console-fork:local .
 docker run -d --name ovh-console \
   -p 127.0.0.1:20000:20000 \
   -v "$PWD/data:/data" \
-  -e API_SECRET_KEY=换成你自己的随机串 \
+  --env-file .env \
   --restart unless-stopped \
-  ghcr.io/gokele/ovh:latest
+  ovh-console-fork:local
 ```
 
-镜像由打 tag 时的 GitHub Action 构建并推到 `ghcr.io/gokele/ovh`,提供 `linux/amd64` 与 `linux/arm64`。
+上述 `docker build` 为当前主机构建；不会向镜像仓库发布产物。
 
 **数据全在 `/data` 这一个目录下**:SQLite 数据库、**数据库加密密钥**(`.env`)、缓存、日志。备份就备份这个目录。
 
@@ -139,7 +140,7 @@ bind mount 进来的宿主目录归属是宿主机那边的 uid,不处理的话�
 
 **容器里自更新是停用的。** 新二进制只会写进容器的可写层,容器一重建
 (`compose up -d`、重启策略拉起、宿主机重启)就回到镜像里的旧版本 ——
-你会看到「更新成功」之后版本号又变回去。界面上会显示「有新版 + 请用 docker pull 更新」而不是更新按钮。
+你会看到「更新成功」之后版本号又变回去。因此界面只提示重建，不在容器内替换程序。
 
 ### 方式 B:单二进制
 
@@ -163,7 +164,7 @@ Windows 把产物名改成 `ovh-server.exe` 即可;交叉编译加 `GOOS=linux G
 **不需要外部 SQLite 库,二进制自带。** 默认监听 `:19998`,浏览器打开 `http://localhost:19998` 即用,
 数据库自动建在 `./data/sniper.db`。
 
-> Release 页提供 Windows amd64 / Linux amd64 / Linux arm64 三个预编译产物,不想自己编译可以直接下。
+> 只有在本仓 Release 附有对应平台的二进制和校验和时，才使用预编译下载。
 
 ### 方式 C:开发(前后端分开跑)
 

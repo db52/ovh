@@ -2,9 +2,9 @@
 #
 #   1. cp .env.example .env
 #   2. 编辑 .env，至少把 API_SECRET_KEY 换成你自己的随机串
-#   3. docker compose up -d
+#   3. docker compose up -d --build
 #
-# 更新： docker compose pull && docker compose up -d
+# 更新：先检出已审阅的源码版本并备份 ./data，再运行 docker compose up -d --build
 # 日志： docker compose logs -f
 # 停止： docker compose down          （数据留在 ./data，不会丢）
 #
@@ -13,7 +13,8 @@
 
 services:
   ovh-console:
-    image: ghcr.io/gokele/ovh:latest
+    # 从当前检出的源码构建；不会拉取旧上游的应用镜像。
+    build: .
     container_name: ovh-console
     restart: unless-stopped
 
@@ -71,4 +72,4 @@ services:
     # 自更新在容器里是停用的（镜像里设了 OVH_IN_CONTAINER=1）。
     # 新二进制只会写进容器的可写层，容器一重建就回到镜像里的旧版本 ——
     # 你会看到「更新成功」之后版本号又变回去。
-    # 更新请用 docker compose pull && docker compose up -d。
+    # 检出目标版本后，更新请用 docker compose up -d --build。
