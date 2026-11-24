@@ -188,6 +188,8 @@ export const qk = {
 
   // 历史与日志
   history: () => ["history"] as const,
+  orderTracking: (source: "history" | "account", ownerId: string, orderId: string) =>
+    ["order-tracking", source, ownerId, orderId] as const,
   logs: () => ["logs"] as const,
 
   // 设置

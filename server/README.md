@@ -86,6 +86,7 @@ POST   /api/servers/:planCode/price
 GET    /api/queue                         POST /api/queue
 PUT    /api/queue/:id/status              DELETE /api/queue/:id               DELETE /api/queue/clear
 GET    /api/purchase-history              DELETE /api/purchase-history
+GET    /api/purchase-history/:id/tracking   # 只读；由本地历史记录确定账户及订单
 
 # 监控
 GET    /api/monitor/subscriptions         POST /api/monitor/subscriptions
@@ -104,6 +105,7 @@ PUT    /api/server-control/:serviceName/{boot-mode|burst|firewall|monitoring}
 
 # 账户
 GET    /api/ovh/account/{info|refunds|email-history|bills|...}
+GET    /api/ovh/account/orders/:order_id/tracking?account=<accountId>   # 只读；账户必填，无需本地抢购历史
 GET    /api/ovh/contact-change-requests
 
 # Telegram

@@ -30,6 +30,8 @@ The included Compose file builds from this checkout. It does not depend on the o
 
 Successful purchase tasks remain in the queue as Ordered, with status filters and a link to purchase history. Ordered tasks cannot run or resume; create a new task for another purchase. Tasks already removed by earlier versions remain in purchase history and are not restored to the active queue.
 
+Under **Account → Order history**, choose **Track order** next to the OVH Manager and PDF links. Orders do not need to appear in the console’s purchase history. Ordered queue tasks and the clickable status on a successful purchase history entry open the same timeline. Tracking is bound to the account that owns the order and shows only the stages, dates and descriptions OVH reports. It requires read access to `GET /me/order/*/status` and `GET /me/order/*/followUp`, not payment permissions. If detailed events are missing or access is denied, the known order status remains visible; missing events do not mean delivery is complete.
+
 Account order records offer payment for orders OVH confirms as unpaid. Review the account, tax-inclusive amount and eligible saved payment method, then explicitly confirm. Expired orders and unavailable methods cannot be paid. Payment requests never retry automatically; check OVH Manager if the result is uncertain or bank verification is required. Credentials need order/payment-method read access and `POST /me/order/*/pay` access.
 
 Confirmation is bound to the account, order, amount, currency and payment method reviewed. Changes after refresh require confirmation again. Switching accounts clears the previous account's selected email and payment dialog.

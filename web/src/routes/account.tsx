@@ -1,6 +1,8 @@
 import { OfficialChat } from "@/components/support/OfficialChat";
 import { SupportTickets } from "@/components/support/SupportTickets";
 import { OrderPaymentButton } from "@/components/account/OrderPaymentButton";
+import { OrderTrackingButton } from "@/components/common/OrderTrackingDialog";
+import { accountTrackingTarget } from "@/hooks/use-order-tracking";
 import { WalletActions } from "@/components/account/WalletActions";
 import { createFileRoute } from "@tanstack/react-router";
 import { User, Mail, RefreshCw, FileText, Inbox, ShieldCheck, ShoppingBag, ExternalLink, Wallet, MapPin, Globe, type LucideIcon } from "lucide-react";
@@ -82,7 +84,7 @@ function AccountPage() {
           <EmailsTab key={accountId} />
         </TabsContent>
         <TabsContent value="orders">
-          <OrdersTab key={accountId} />
+          <OrdersTab key={accountId} accountId={accountId} />
         </TabsContent>
         <TabsContent value="refunds">
           <RefundsTab key={accountId} />
@@ -457,10 +459,9 @@ function RefundsTab() {
   );
 }
 
-function OrdersTab() {
-  const accountId = useAccountScope();
+function OrdersTab({ accountId }: { accountId: string }) {
   const { t } = useTranslation();
-  const orders = useOrders();
+  const orders = useOrders(accountId);
   return (
     <Card>
       <CardContent className="p-4">
@@ -500,7 +501,7 @@ function OrdersTab() {
             <PartialNotice failedCount={orders.data?.failedCount || 0} what={t("account.ordersTab")} className="mb-3" />
             <div className="divide-y divide-border">
             {(orders.data?.items || []).map((o) => (
-              <OrderRow key={`${accountId}:${o.orderId}`} order={o} accountId={accountId} />
+              <OrderRow key={`${o.accountId || accountId}:${o.orderId}`} order={o} accountId={accountId} />
             ))}
             </div>
           </div>
@@ -512,6 +513,8 @@ function OrdersTab() {
 
 function OrderRow({ order, accountId }: { order: OrderRecord; accountId: string }) {
   const { t } = useTranslation();
+  // accountId is the scope of THIS list request, not an account looked up when the button is clicked.
+  const target = accountTrackingTarget(order.accountId || accountId, order.orderId, order.paymentStatusError ? undefined : order.orderStatus);
   // retractionDate 非空且还在未来 = 订单处于法定撤回期内,过期了就不显示
   const retractUntil =
     order.retractionDate && !Number.isNaN(new Date(order.retractionDate).getTime()) && new Date(order.retractionDate) > new Date()
@@ -528,11 +531,12 @@ function OrderRow({ order, accountId }: { order: OrderRecord; accountId: string 
         </div>
         <p className="text-[11px] text-muted-foreground">{fmtDateTime(order.date)}</p>
       </div>
-      <div className="sm:text-right flex-shrink-0">
+      <div className="min-w-0 max-w-full sm:text-right">
         <p className="text-sm font-semibold tabular-nums">{order.priceWithTax?.text || "—"}</p>
         {order.orderStatus === "notPaid" && <div className="my-2"><OrderPaymentButton accountId={order.accountId || accountId} orderId={order.orderId} managerUrl={order.url} /></div>}
         {order.paymentStatusError && <p className="text-xs text-warning" title={order.paymentStatusError}>{t("account.payment.statusUnknown")}</p>}
-        <div className="flex flex-wrap items-center sm:justify-end gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end">
+          {target && <OrderTrackingButton target={target} />}
           {order.url && (
             <a href={order.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-foreground hover:underline">
               <ExternalLink className="w-3 h-3" />

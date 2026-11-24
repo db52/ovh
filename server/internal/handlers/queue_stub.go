@@ -10,10 +10,11 @@ import (
 	"github.com/ovh-buy/server/internal/types"
 )
 
-// queueOrderView 保留原任务字段,附加成功订单编号;不依赖队列数据库额外列。
+// queueOrderView 保留原任务字段，只附加内存中可唯一匹配的订单，不增加数据库列。
 type queueOrderView struct {
 	types.QueueItem
-	OrderID string `json:"orderId,omitempty"`
+	OrderID           string `json:"orderId,omitempty"`
+	PurchaseHistoryID string `json:"purchaseHistoryId,omitempty"`
 	// PlanName 商品名(如 KS-LE-6),取自该任务所属账户的目录缓存;缓存里没有就留空,不为它请求 OVH
 	PlanName string `json:"planName,omitempty"`
 }
@@ -26,12 +27,26 @@ func GetQueue(state *app.State) gin.HandlerFunc {
 		cp := make([]types.QueueItem, len(state.Queue))
 		copy(cp, state.Queue)
 		state.QueueMu.Unlock()
-		orders := make(map[string]string)
+		type queueKey struct{ accountID, taskID string }
+		type orderRef struct{ orderID, historyID string }
+		orders := make(map[queueKey]orderRef)
+		historyIDs := make(map[string]int)
 		state.HistoryMu.Lock()
 		for _, h := range state.History {
-			if h.Status == "success" && h.OrderID != "" {
-				orders[h.TaskID] = h.OrderID
+			historyIDs[h.ID]++
+			if h.Status != "success" || h.TaskID == "" {
+				continue
 			}
+			key := queueKey{h.AccountID, h.TaskID}
+			if _, seen := orders[key]; seen || !validTrackingOrderID(h.OrderID) {
+				orders[key] = orderRef{} // 同账户下有多条成功历史时，不猜一条。
+				continue
+			}
+			ref := orderRef{orderID: h.OrderID}
+			if strings.TrimSpace(h.AccountID) != "" {
+				ref.historyID = h.ID
+			}
+			orders[key] = ref
 		}
 		state.HistoryMu.Unlock()
 		// 每个账户视角的目录缓存只取一次(GetBucket 返回副本)
@@ -60,7 +75,13 @@ func GetQueue(state *app.State) gin.HandlerFunc {
 			view[i].QueueItem = item
 			view[i].PlanName = planName(item.AccountID, item.PlanCode)
 			if item.Status == "completed" {
-				view[i].OrderID = orders[item.ID]
+				ref := orders[queueKey{item.AccountID, item.ID}]
+				view[i].OrderID = ref.orderID
+				if ref.historyID != "" && historyIDs[ref.historyID] == 1 {
+					if _, exists := state.FindAccount(item.AccountID); exists {
+						view[i].PurchaseHistoryID = ref.historyID
+					}
+				}
 			}
 		}
 		c.JSON(http.StatusOK, view)

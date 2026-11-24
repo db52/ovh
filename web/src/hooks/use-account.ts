@@ -202,10 +202,10 @@ export function useEmails() {
 }
 
 /** OVH 订单记录。同 useRefunds：裸数组 + X-Partial-Failures 头 */
-export function useOrders() {
-  const accountId = useAccountScope();
+export function useOrders(accountId: string) {
   return useQuery({
     queryKey: qk.account.orders(accountId),
+    enabled: !!accountId,
     queryFn: async (): Promise<PartialList<OrderRecord>> => {
       const res = await api.get<OrderRecord[]>("/ovh/account/orders", { params: { account: accountId } });
       return toPartialList(res.data, readPartialFailures(res.headers));

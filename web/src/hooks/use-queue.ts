@@ -14,6 +14,8 @@ export interface QueueItem {
   accountId: string;
   planCode: string;
   orderId?: string;
+  /** 与 orderId 对应的本地成功记录；旧任务可能没有关联记录。 */
+  purchaseHistoryId?: string;
   /** 商品名(如 KS-LE-6),后端从该任务所属账户的目录缓存里取;没有则为空 */
   planName?: string;
   datacenter: string;
